@@ -1,7 +1,7 @@
 {
   "name": "redux-saga-injector",
-  "version": "1.0.0",
-  "description": "",
+  "version": "1.0.1",
+  "description": "A lightweight library for dynamic connections saga",
   "main": "./dist/index.js",
   "scripts": {
     "start": "npm run build && cd demo  && yarn start",
@@ -11,9 +11,18 @@
   },
   "author": "",
   "license": "ISC",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/isychev/redux-saga-injector.git"
+  },
+  "bugs": {
+    "url": "https://github.com/isychev/redux-saga-injector/issues"
+  },
+  "homepage": "https://github.com/isychev/redux-saga-injector",
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-core": "6",
+    "babel-eslint": "^8.0.3",
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-react": "^6.5.0",
     "babel-preset-stage-0": "^6.24.1",
@@ -27,11 +36,10 @@
     "eslint-plugin-jsx-a11y": "^5.1.1",
     "eslint-plugin-prettier": "^2.3.1",
     "eslint-plugin-react": "^7.3.0",
-    "react": "^16.2.0",
-    "redux-saga": "^0.16.0"
+    "prettier": "^1.9.0"
   },
   "dependencies": {
-    "babel-eslint": "^8.0.3",
-    "prettier": "^1.9.0"
+    "redux-saga": "^0.16.0",
+    "react": "^16.2.0"
   }
 }
