@@ -1,12 +1,12 @@
-import createSagaMiddleware from 'redux-saga';
-import { take, fork, cancel, put } from 'redux-saga/effects';
+import { eventChannel } from 'redux-saga';
+import { take, fork, cancel, all, call } from 'redux-saga/effects';
 
 /**
- * Action type for cancel sga
+ * Global emmits
  * @type {string}
  */
-
-export const CANCEL_SAGA_ACTION = 'CANCEL_SAGA_ACTION';
+let globalAppendEmmit = null;
+let globalRemoveEmmit = null;
 
 /**
  * object with all sagas
@@ -39,44 +39,6 @@ const DEFAULT_OPTIONS = {
  * saga middleware
  * @type {SagaMiddleware<object>}
  */
-export const sagaMiddleware = createSagaMiddleware();
-
-/**
- * factory abortable saga
- * @param {string}   sagaName   - the name of the saga
- * @param {Function} saga       - saga function
- * @param {Object}   sagaProps  -  ssaga arguments
- * @return {Function} - return function-generator (saga)
- */
-
-function createAbortableSaga(sagaName, saga, sagaProps) {
-  return function* abortableSaga() {
-    const sagaTask = yield fork(saga, sagaProps);
-    while (true) {
-      const { payload } = yield take(CANCEL_SAGA_ACTION);
-      if (payload === sagaName) {
-        injectedSagas[sagaName] = null;
-        yield cancel(sagaTask);
-        break;
-      }
-    }
-  };
-}
-
-/**
- * factory for cancel saga
- * @param {string}  sagaName  - the name of the saga
- * @return {Function} - return function-generator (saga) for cancel saga by `sagaName`
- */
-
-function createCancelSaga(sagaName) {
-  return function* cancelSaga() {
-    yield put({
-      type: CANCEL_SAGA_ACTION,
-      payload: sagaName,
-    });
-  };
-}
 
 /**
  *
@@ -90,7 +52,7 @@ function createCancelSaga(sagaName) {
 export function removeSaga(sagaName) {
   const { hold } = (injectedSagas[sagaName] || {}).options || {};
   if (!hold) {
-    sagaMiddleware.run(createCancelSaga(sagaName));
+    globalRemoveEmmit({ sagaName });
   }
 }
 
@@ -139,20 +101,62 @@ export function injectSagas(params) {
     // if flag replace - cancel prev saga
     const existSaga = Boolean(injectedSagas[sagaName]);
     if (replace && existSaga) {
-      sagaMiddleware.run(createCancelSaga(sagaName));
+      // cancel saga
+      globalRemoveEmmit({ sagaName });
     }
     // flag saga exist
-
     // run saga if flag force or saga not exist
-
     if (!existSaga || force) {
-      // save saga to injectedSagas
-      injectedSagas[sagaName] = {
-        saga: mergeSaga,
-        options: mergeOptions,
-      };
-      // run sgag
-      sagaMiddleware.run(createAbortableSaga(sagaName, mergeSaga, sagaProps));
+      // run saga
+      globalAppendEmmit({ sagaName, mergeSaga, sagaProps, mergeOptions });
     }
   });
+}
+
+/**
+ * saga watcher of append saga
+ */
+
+function* watchAppendSaga() {
+  const chan = yield call(() =>
+    eventChannel(emmit => {
+      globalAppendEmmit = emmit;
+      return f => f;
+    }),
+  );
+  while (true) {
+    const { sagaName, mergeSaga, sagaProps, mergeOptions } = yield take(chan);
+    // save saga to injectedSagas
+    injectedSagas[sagaName] = {
+      saga: mergeSaga,
+      options: mergeOptions,
+    };
+    injectedSagas[sagaName].sagaLink = yield fork(mergeSaga, sagaProps);
+  }
+}
+
+/**
+ * saga watcher emmit of remove saga
+ */
+
+function* watchRemoveSaga() {
+  const chan = yield call(() =>
+    eventChannel(emmit => {
+      globalRemoveEmmit = emmit;
+      return f => f;
+    }),
+  );
+  while (true) {
+    const { sagaName } = yield take(chan);
+    yield cancel(injectedSagas[sagaName].sagaLink);
+    injectedSagas[sagaName] = null;
+  }
+}
+
+/**
+ * root saga
+ */
+
+export function* injectorSaga() {
+  yield all([watchAppendSaga(), watchRemoveSaga()]);
 }

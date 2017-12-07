@@ -4,9 +4,9 @@
   "description": "A lightweight library for dynamic connections saga",
   "main": "./dist/index.js",
   "scripts": {
-    "start": "npm run build && cd demo  && yarn start",
+    "start": "npm run build && cd demo  && npm run start",
     "build": "babel ./src --out-dir ./dist --noInterop && cp ./src/* ./demo/src/injector",
-    "build:prod": "npm build && cd demo && yarn build",
+    "build:prod": "npm build && cd demo && npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

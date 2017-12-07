@@ -3,27 +3,27 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.sagaMiddleware = exports.CANCEL_SAGA_ACTION = undefined;
 
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 exports.removeSaga = removeSaga;
 exports.injectSagas = injectSagas;
+exports.injectorSaga = injectorSaga;
 
 var _reduxSaga = require('redux-saga');
 
-var _reduxSaga2 = _interopRequireDefault(_reduxSaga);
-
 var _effects = require('redux-saga/effects');
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+var _marked = /*#__PURE__*/regeneratorRuntime.mark(watchAppendSaga),
+    _marked2 = /*#__PURE__*/regeneratorRuntime.mark(watchRemoveSaga),
+    _marked3 = /*#__PURE__*/regeneratorRuntime.mark(injectorSaga);
 
 /**
- * Action type for cancel sga
+ * Global emmits
  * @type {string}
  */
-
-var CANCEL_SAGA_ACTION = exports.CANCEL_SAGA_ACTION = 'CANCEL_SAGA_ACTION';
+var globalAppendEmmit = null;
+var globalRemoveEmmit = null;
 
 /**
  * object with all sagas
@@ -56,96 +56,6 @@ var DEFAULT_OPTIONS = {
  * saga middleware
  * @type {SagaMiddleware<object>}
  */
-var sagaMiddleware = exports.sagaMiddleware = (0, _reduxSaga2.default)();
-
-/**
- * factory abortable saga
- * @param {string}   sagaName   - the name of the saga
- * @param {Function} saga       - saga function
- * @param {Object}   sagaProps  -  ssaga arguments
- * @return {Function} - return function-generator (saga)
- */
-
-function createAbortableSaga(sagaName, saga, sagaProps) {
-  return (/*#__PURE__*/regeneratorRuntime.mark(function abortableSaga() {
-      var sagaTask, _ref, payload;
-
-      return regeneratorRuntime.wrap(function abortableSaga$(_context) {
-        while (1) {
-          switch (_context.prev = _context.next) {
-            case 0:
-              _context.next = 2;
-              return (0, _effects.fork)(saga, sagaProps);
-
-            case 2:
-              sagaTask = _context.sent;
-
-            case 3:
-              if (!true) {
-                _context.next = 15;
-                break;
-              }
-
-              _context.next = 6;
-              return (0, _effects.take)(CANCEL_SAGA_ACTION);
-
-            case 6:
-              _ref = _context.sent;
-              payload = _ref.payload;
-
-              if (!(payload === sagaName)) {
-                _context.next = 13;
-                break;
-              }
-
-              injectedSagas[sagaName] = null;
-              _context.next = 12;
-              return (0, _effects.cancel)(sagaTask);
-
-            case 12:
-              return _context.abrupt('break', 15);
-
-            case 13:
-              _context.next = 3;
-              break;
-
-            case 15:
-            case 'end':
-              return _context.stop();
-          }
-        }
-      }, abortableSaga, this);
-    })
-  );
-}
-
-/**
- * factory for cancel saga
- * @param {string}  sagaName  - the name of the saga
- * @return {Function} - return function-generator (saga) for cancel saga by `sagaName`
- */
-
-function createCancelSaga(sagaName) {
-  return (/*#__PURE__*/regeneratorRuntime.mark(function cancelSaga() {
-      return regeneratorRuntime.wrap(function cancelSaga$(_context2) {
-        while (1) {
-          switch (_context2.prev = _context2.next) {
-            case 0:
-              _context2.next = 2;
-              return (0, _effects.put)({
-                type: CANCEL_SAGA_ACTION,
-                payload: sagaName
-              });
-
-            case 2:
-            case 'end':
-              return _context2.stop();
-          }
-        }
-      }, cancelSaga, this);
-    })
-  );
-}
 
 /**
  *
@@ -157,11 +67,11 @@ function createCancelSaga(sagaName) {
  */
 
 function removeSaga(sagaName) {
-  var _ref2 = (injectedSagas[sagaName] || {}).options || {},
-      hold = _ref2.hold;
+  var _ref = (injectedSagas[sagaName] || {}).options || {},
+      hold = _ref.hold;
 
   if (!hold) {
-    sagaMiddleware.run(createCancelSaga(sagaName));
+    globalRemoveEmmit({ sagaName: sagaName });
   }
 }
 
@@ -211,20 +121,147 @@ function injectSagas(params) {
 
     var existSaga = Boolean(injectedSagas[sagaName]);
     if (replace && existSaga) {
-      sagaMiddleware.run(createCancelSaga(sagaName));
+      // cancel saga
+      globalRemoveEmmit({ sagaName: sagaName });
     }
     // flag saga exist
-
     // run saga if flag force or saga not exist
-
     if (!existSaga || force) {
-      // save saga to injectedSagas
-      injectedSagas[sagaName] = {
-        saga: mergeSaga,
-        options: mergeOptions
-      };
-      // run sgag
-      sagaMiddleware.run(createAbortableSaga(sagaName, mergeSaga, sagaProps));
+      // run saga
+      globalAppendEmmit({ sagaName: sagaName, mergeSaga: mergeSaga, sagaProps: sagaProps, mergeOptions: mergeOptions });
     }
   });
+}
+
+/**
+ * saga watcher of append saga
+ */
+
+function watchAppendSaga() {
+  var chan, _ref2, sagaName, mergeSaga, sagaProps, mergeOptions;
+
+  return regeneratorRuntime.wrap(function watchAppendSaga$(_context) {
+    while (1) {
+      switch (_context.prev = _context.next) {
+        case 0:
+          _context.next = 2;
+          return (0, _effects.call)(function () {
+            return (0, _reduxSaga.eventChannel)(function (emmit) {
+              globalAppendEmmit = emmit;
+              return function (f) {
+                return f;
+              };
+            });
+          });
+
+        case 2:
+          chan = _context.sent;
+
+        case 3:
+          if (!true) {
+            _context.next = 17;
+            break;
+          }
+
+          _context.next = 6;
+          return (0, _effects.take)(chan);
+
+        case 6:
+          _ref2 = _context.sent;
+          sagaName = _ref2.sagaName;
+          mergeSaga = _ref2.mergeSaga;
+          sagaProps = _ref2.sagaProps;
+          mergeOptions = _ref2.mergeOptions;
+
+          // save saga to injectedSagas
+          injectedSagas[sagaName] = {
+            saga: mergeSaga,
+            options: mergeOptions
+          };
+          _context.next = 14;
+          return (0, _effects.fork)(mergeSaga, sagaProps);
+
+        case 14:
+          injectedSagas[sagaName].sagaLink = _context.sent;
+          _context.next = 3;
+          break;
+
+        case 17:
+        case 'end':
+          return _context.stop();
+      }
+    }
+  }, _marked, this);
+}
+
+/**
+ * saga watcher emmit of remove saga
+ */
+
+function watchRemoveSaga() {
+  var chan, _ref3, _sagaName;
+
+  return regeneratorRuntime.wrap(function watchRemoveSaga$(_context2) {
+    while (1) {
+      switch (_context2.prev = _context2.next) {
+        case 0:
+          _context2.next = 2;
+          return (0, _effects.call)(function () {
+            return (0, _reduxSaga.eventChannel)(function (emmit) {
+              globalRemoveEmmit = emmit;
+              return function (f) {
+                return f;
+              };
+            });
+          });
+
+        case 2:
+          chan = _context2.sent;
+
+        case 3:
+          if (!true) {
+            _context2.next = 13;
+            break;
+          }
+
+          _context2.next = 6;
+          return (0, _effects.take)(chan);
+
+        case 6:
+          _ref3 = _context2.sent;
+          _sagaName = _ref3.sagaName;
+          _context2.next = 10;
+          return (0, _effects.cancel)(injectedSagas[_sagaName].sagaLink);
+
+        case 10:
+          injectedSagas[_sagaName] = null;
+          _context2.next = 3;
+          break;
+
+        case 13:
+        case 'end':
+          return _context2.stop();
+      }
+    }
+  }, _marked2, this);
+}
+
+/**
+ * root saga
+ */
+
+function injectorSaga() {
+  return regeneratorRuntime.wrap(function injectorSaga$(_context3) {
+    while (1) {
+      switch (_context3.prev = _context3.next) {
+        case 0:
+          _context3.next = 2;
+          return (0, _effects.all)([watchAppendSaga(), watchRemoveSaga()]);
+
+        case 2:
+        case 'end':
+          return _context3.stop();
+      }
+    }
+  }, _marked3, this);
 }

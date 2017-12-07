@@ -1,4 +1,4 @@
-import {sagaMiddleware,removeSaga,injectSagas} from './injector';
+import { removeSaga, injectSagas, injectorSaga } from './injector';
 import injectorHOC from './injectorHOC';
 
-export {sagaMiddleware,removeSaga,injectSagas, injectorHOC}
+export { removeSaga, injectSagas, injectorHOC, injectorSaga };
