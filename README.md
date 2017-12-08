@@ -27,42 +27,44 @@ yarn add redux-saga-injector
 
 ## Usage
 
-### Connect `sagaMiddleware` from `redux-saga-injector`
+### Connect `injectorSaga` from `redux-saga-injector`
 
-In normal cases, the store contains the following code
+Connect `injectorSaga` from `redux-saga-injector`
 ```jsx
   // store.js
   import createSagaMiddleware from 'redux-saga'
-   ...
-   // create the saga middleware
-   const sagaMiddleware = createSagaMiddleware()
-   
-   // mount it on the Store
-   const store = createStore(
-     reducer,
-     applyMiddleware(sagaMiddleware)
-   )
-   
-   // then run the saga
-   sagaMiddleware.run(mySaga)
+  ...
+  // create the saga middleware
+  const sagaMiddleware = createSagaMiddleware()
+  
+  // mount it on the Store
+  const store = createStore(
+    reducer,
+    applyMiddleware(sagaMiddleware)
+  )
+  
+  // then run the saga
+  sagaMiddleware.run(mySaga)
 ```
-To connect the `redux-saga-injector` need to get `sagaMiddleware` and `injectSagas` from the redux-saga-injector 
+Store with `injectorSaga` from `redux-saga-injector` 
 ```jsx
   // store.js
-  import {sagaMiddleware, injectSagas} from 'redux-saga-injector'
-    
-   // mount it on the Store
-   const store = createStore(
-     reducer,
-     applyMiddleware(sagaMiddleware)
-   )
-   
-   // then run the saga
-   injectSagas({mySaga})
-   // or
-   sagaMiddleware.run(mySaga) 
+  import {injectorSaga} from 'redux-saga-injector'
+  import createSagaMiddleware from 'redux-saga'
+  ...
+  // create the saga middleware
+  const sagaMiddleware = createSagaMiddleware()
+  
+  // mount it on the Store
+  const store = createStore(
+    reducer,
+    applyMiddleware(sagaMiddleware)
+  )
+  
+  // then run the saga
+  sagaMiddleware.run(injectorSaga);
+  sagaMiddleware.run(mySaga);
 ```
-To run the standard sagas, you can use `injectSagas` or `sagaMiddleware`
 
 After that you can use `injectSagas` anywhere in the application. Also available `removeSaga` - functions to remove saga
 
@@ -177,7 +179,7 @@ export default injectorHOC(MyComponent,{
 To run the demo page locally, it is imperative that the local machine was [create-react-app](https://github.com/facebookincubator/create-react-app)
 
 ```
-git clone https://isychev.github.io/redux-saga-injector/
+git clone https://github.com/isychev/redux-saga-injector.git
 cd redux-saga-injector
 yarn start
 ```
